@@ -144,6 +144,8 @@ function userPrompt(response) {
         deleteRole();
       } else if (reply.choice === "Remove Department") {
         deleteDepartment();
+      } else if (reply.choice === "View All Employees by Department") {
+        viewByDepartment();
       }
     })
     .catch(function (err) {
@@ -216,6 +218,45 @@ function viewRoles() {
   connection.query("SELECT * FROM role", function (err, res) {
     if (err) throw err;
     console.table(res);
+  });
+}
+
+function viewByDepartment() {
+  let departmentArray = [];
+  connection.query("SELECT * FROM department", function (err, res) {
+    if (err) throw err;
+    for (var i = 0; i < res.length; i++) {
+      departmentArray.push(res[i].department_name);
+    }
+    console.log(departmentArray);
+    inquirer
+      .prompt([
+        {
+          type: "list",
+          message: "Which department's employees do you want to see?",
+          choices: departmentArray,
+          name: "department",
+        },
+      ])
+      .then(function (answer) {
+        const departmentChoice = answer.department;
+        console.log(departmentChoice);
+        connection.query(
+          `SELECT department_name, first_name, last_name FROM employee, department, role WHERE department.id = department_id AND role.id = role_id`,
+          //   [departmentChoice],
+          function (err, res) {
+            if (err) throw err;
+            // console.log(res);
+            const departmentName = [];
+            for (i = 0; i < res.length; i++) {
+              if (res[i].department_name === departmentChoice) {
+                departmentName.push(res[i].first_name + " " + res[i].last_name);
+              }
+            }
+            console.log(departmentName);
+          }
+        );
+      });
   });
 }
 
