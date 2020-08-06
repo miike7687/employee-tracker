@@ -104,7 +104,7 @@ function userPrompt(response) {
             },
             {
               type: "input",
-              message: "What's the department ID of this role?'",
+              message: "What's the department ID of this role?",
               name: "departmentId",
             },
           ])
@@ -134,10 +134,8 @@ function userPrompt(response) {
           });
       } else if (reply.choice === "View All Employees") {
         viewEmployees();
-        userPrompt();
       } else if (reply.choice === "View All Roles") {
         viewRoles();
-        userPrompt();
       } else if (reply.choice === "Remove Employee") {
         deleteEmployee();
       } else if (reply.choice === "Remove Role") {
@@ -146,6 +144,10 @@ function userPrompt(response) {
         deleteDepartment();
       } else if (reply.choice === "View All Employees by Department") {
         viewByDepartment();
+      } else if (reply.choice === "View All Employees by Role") {
+        viewByRole();
+      } else if (reply.choice === "Update Employee Roles") {
+        updateRole();
       }
     })
     .catch(function (err) {
@@ -211,6 +213,7 @@ function viewEmployees() {
     if (err) throw err;
     console.table(res);
   });
+  userPrompt();
 }
 
 function viewRoles() {
@@ -219,6 +222,7 @@ function viewRoles() {
     if (err) throw err;
     console.table(res);
   });
+  userPrompt();
 }
 
 function viewByDepartment() {
@@ -256,10 +260,141 @@ function viewByDepartment() {
             console.log(departmentName);
           }
         );
+        // userPrompt();
       });
   });
 }
 
+function viewByRole() {
+  let roleArray = [];
+  connection.query("SELECT * FROM role", function (err, res) {
+    if (err) throw err;
+    for (var i = 0; i < res.length; i++) {
+      roleArray.push(res[i].title);
+    }
+    console.log(roleArray);
+    inquirer
+      .prompt([
+        {
+          type: "list",
+          message: "Which roles of employees do you want to see?",
+          choices: roleArray,
+          name: "role",
+        },
+      ])
+      .then(function (answer) {
+        const roleChoice = answer.role;
+        console.log(roleChoice);
+        connection.query(
+          `SELECT title, first_name, last_name FROM employee, department, role WHERE department.id = department_id AND role.id = role_id`,
+          //   [departmentChoice],
+          function (err, res) {
+            if (err) throw err;
+            console.table(res);
+            const roleName = [];
+            for (i = 0; i < res.length; i++) {
+              if (res[i].title === roleChoice) {
+                roleName.push(res[i].first_name + " " + res[i].last_name);
+              }
+            }
+            console.log(roleName);
+          }
+        );
+        // userPrompt();
+      });
+  });
+}
+
+function updateRole() {
+  let employeeArray = [];
+  connection.query("SELECT * FROM employee", function (err, res) {
+    for (var i = 0; i < res.length; i++) {
+      employeeArray.push(res[i].first_name + " " + res[i].last_name);
+    }
+    console.log(employeeArray);
+    inquirer
+      .prompt([
+        {
+          type: "list",
+          message: "Which employee do you want to update?",
+          choices: employeeArray,
+          name: "employee",
+        },
+      ])
+      .then(function (answer) {
+        const updatedEmployee = answer.employee;
+        console.log("You are now updating: " + updatedEmployee);
+        inquirer
+          .prompt([
+            {
+              type: "rawlist",
+              message:
+                "Would you like to reassign this employee to an existing role or add a new role for them?",
+              choices: ["Reassign to existing role", "Create new role"],
+              name: "roleUpdate",
+            },
+          ])
+          .then(function (reply) {
+            if (reply.roleUpdate === "Reassign to existing role") {
+              console.log(
+                `${updatedEmployee} is changing jobs to an existing role!!`
+              );
+              let titlesArray = [];
+              connection.query(
+                `SELECT title, first_name, last_name, role_id FROM employee, department, role WHERE department.id = department_id AND role.id = role_id`,
+                function (err, res) {
+                  if (err) throw err;
+                  for (i = 0; i < res.length; i++) {
+                    titlesArray.push(res[i].title);
+                  }
+                  //   console.log(titlesArray);
+                  inquirer
+                    .prompt([
+                      {
+                        type: "list",
+                        message: `Which role would you like to reassign ${updatedEmployee} to?`,
+                        choices: titlesArray,
+                        name: "newRole",
+                      },
+                    ])
+                    .then(function (response) {
+                      const employeeNewRole = response.newRole;
+                      console.log(
+                        updatedEmployee +
+                          " wants to become a " +
+                          employeeNewRole +
+                          "!"
+                      );
+                      for (i = 0; i < res.length; i++) {
+                        console.log(res[i].title);
+
+                        // if (
+                        //   res[i].first_name + " " + res[i].last_name ===
+                        //   updatedEmployee
+                        // ) {
+                        //   console.log(res[i].title);
+                        // } else {
+                        //   console.log("This was a fail!");
+                        // }
+                      }
+                      const split = updatedEmployee.split(" ");
+                      const employeeFirst = split[0];
+                      connection.query("UPDATE employee SET ? WHERE ?", [
+                        { title: employeeNewRole },
+                        { first_name: employeeFirst },
+                      ]);
+                      console.table(res);
+                    });
+                  //   console.log(titlesArray);
+                }
+              );
+            } else if (reply.roleUpdate === "Create new role") {
+              console.log(`Let's create a new role for ${updatedEmployee}!!`);
+            }
+          });
+      });
+  });
+}
 function deleteEmployee(employee) {
   let employeeArr = [];
   connection.query("SELECT * FROM employee", function (err, res) {
@@ -288,6 +423,7 @@ function deleteEmployee(employee) {
             console.log(res.affectedRows + " employee deleted!\n");
           }
         );
+        userPrompt();
       });
   });
 }
@@ -320,6 +456,7 @@ function deleteRole(role) {
             console.log(res.affectedRows + " role deleted!\n");
           }
         );
+        userPrompt();
       });
   });
 }
@@ -352,6 +489,7 @@ function deleteDepartment(department) {
             console.log(res.affectedRows + " department deleted!\n");
           }
         );
+        userPrompt();
       });
   });
 }
