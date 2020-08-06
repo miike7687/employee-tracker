@@ -341,13 +341,13 @@ function updateRole() {
               );
               let titlesArray = [];
               connection.query(
-                `SELECT title, first_name, last_name, role_id FROM employee, department, role WHERE department.id = department_id AND role.id = role_id`,
+                `SELECT employee.first_name, employee.last_name, employee.role_id, role.title FROM employee, department, role WHERE department.id = department_id AND role.id = role_id`,
                 function (err, res) {
                   if (err) throw err;
                   for (i = 0; i < res.length; i++) {
                     titlesArray.push(res[i].title);
                   }
-                  //   console.log(titlesArray);
+                  console.log(titlesArray);
                   inquirer
                     .prompt([
                       {
@@ -359,33 +359,98 @@ function updateRole() {
                     ])
                     .then(function (response) {
                       const employeeNewRole = response.newRole;
-                      console.log(
-                        updatedEmployee +
-                          " wants to become a " +
-                          employeeNewRole +
-                          "!"
-                      );
-                      for (i = 0; i < res.length; i++) {
-                        console.log(res[i].title);
-
-                        // if (
-                        //   res[i].first_name + " " + res[i].last_name ===
-                        //   updatedEmployee
-                        // ) {
-                        //   console.log(res[i].title);
-                        // } else {
-                        //   console.log("This was a fail!");
-                        // }
-                      }
                       const split = updatedEmployee.split(" ");
                       const employeeFirst = split[0];
-                      connection.query("UPDATE employee SET ? WHERE ?", [
-                        { title: employeeNewRole },
-                        { first_name: employeeFirst },
-                      ]);
-                      console.table(res);
+
+                      if (employeeNewRole === "Cashier") {
+                        connection.query("UPDATE role SET ? WHERE ?", [
+                          {
+                            title: employeeNewRole,
+                          },
+                          { id: 1 },
+                        ]);
+                        connection.query("UPDATE employee SET ? WHERE ?", [
+                          {
+                            role_id: 1,
+                          },
+                          { first_name: employeeFirst },
+                        ]);
+                        console.log(
+                          updatedEmployee + " is now a " + employeeNewRole + "!"
+                        );
+                      } else if (employeeNewRole === "Manager") {
+                        connection.query("UPDATE role SET ? WHERE ?", [
+                          {
+                            title: employeeNewRole,
+                          },
+                          { id: 2 },
+                        ]);
+                        connection.query("UPDATE employee SET ? WHERE ?", [
+                          {
+                            role_id: 2,
+                          },
+                          { first_name: employeeFirst },
+                        ]);
+                        console.log(
+                          updatedEmployee + " is now a " + employeeNewRole + "!"
+                        );
+                      } else if (employeeNewRole === "Talent") {
+                        connection.query("UPDATE role SET ? WHERE ?", [
+                          {
+                            title: employeeNewRole,
+                          },
+                          { id: 3 },
+                        ]);
+                        connection.query("UPDATE employee SET ? WHERE ?", [
+                          {
+                            role_id: 3,
+                          },
+                          { first_name: employeeFirst },
+                        ]);
+                        console.log(
+                          updatedEmployee + " is now a " + employeeNewRole + "!"
+                        );
+                      } else if (employeeNewRole === "Janitor") {
+                        connection.query("UPDATE role SET ? WHERE ?", [
+                          {
+                            title: employeeNewRole,
+                          },
+                          { id: 4 },
+                        ]);
+                        connection.query("UPDATE employee SET ? WHERE ?", [
+                          {
+                            role_id: 4,
+                          },
+                          { first_name: employeeFirst },
+                        ]);
+                        console.log(
+                          updatedEmployee + " is now a " + employeeNewRole + "!"
+                        );
+                        //   for (i = 0; i < res.length; i++) {
+                        //     console.log(res[i].title);
+
+                        //     // if (
+                        //     //   res[i].first_name + " " + res[i].last_name ===
+                        //     //   updatedEmployee
+                        //     // ) {
+                        //     //   console.log(res[i].title);
+                        //     // } else {
+                        //     //   console.log("This was a fail!");
+                        //     // }
+                        //   }
+                        //   const split = updatedEmployee.split(" ");
+                        //   const employeeFirst = split[0];
+                        //   connection.query(
+                        //     "UPDATE employee INNER JOIN role ON employee.role_id = role.id SET ? WHERE ?",
+                        //     [
+                        //       { title: employeeNewRole },
+                        //       { first_name: employeeFirst },
+                        //     ]
+                        //   );
+                      }
+                      userPrompt();
+                      //   console.log(titlesArray);
                     });
-                  //   console.log(titlesArray);
                 }
               );
             } else if (reply.roleUpdate === "Create new role") {
@@ -395,6 +460,7 @@ function updateRole() {
       });
   });
 }
+
 function deleteEmployee(employee) {
   let employeeArr = [];
   connection.query("SELECT * FROM employee", function (err, res) {
