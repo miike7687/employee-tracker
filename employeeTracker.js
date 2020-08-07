@@ -345,6 +345,7 @@ function viewByRole() {
 function updateRole() {
   let employeeArray = [];
   connection.query("SELECT * FROM employee", function (err, res) {
+    let employeeObj = res;
     for (var i = 0; i < res.length; i++) {
       employeeArray.push(res[i].first_name + " " + res[i].last_name);
     }
@@ -359,6 +360,13 @@ function updateRole() {
         },
       ])
       .then(function (answer) {
+        let chosenEmployeeId;
+        if (
+          answer.employee ===
+          employeeObj.first_name + " " + employeeObj.last_name
+        ) {
+          chosenEmployeeId = employeeObj.id;
+        }
         const updatedEmployee = answer.employee;
         console.log("You are now updating: " + updatedEmployee);
         inquirer
@@ -377,120 +385,125 @@ function updateRole() {
                 `${updatedEmployee} is changing jobs to an existing role!!`
               );
               let titlesArray = [];
-              connection.query(
-                "SELECT DISTINCT employee.first_name, employee.last_name, employee.role_id, role.title FROM employee JOIN  role ON employee.role_id = role.id",
-                function (err, res) {
-                  if (err) throw err;
-                  for (i = 0; i < res.length; i++) {
-                    titlesArray.push(res[i].title);
-                  }
-                  //   getUnique(titlesArray);
-                  //   console.log(res);
-                  inquirer
-                    .prompt([
-                      {
-                        type: "list",
-                        message: `Which role would you like to reassign ${updatedEmployee} to?`,
-                        choices: titlesArray,
-                        name: "newRole",
-                      },
-                    ])
-                    .then(function (response) {
-                      const employeeNewRole = response.newRole;
-                      const split = updatedEmployee.split(" ");
-                      const employeeFirst = split[0];
-
-                      if (employeeNewRole === "Cashier") {
-                        connection.query("UPDATE role SET ? WHERE ?", [
-                          {
-                            title: employeeNewRole,
-                          },
-                          { id: 1 },
-                        ]);
-                        connection.query("UPDATE employee SET ? WHERE ?", [
-                          {
-                            role_id: 1,
-                          },
-                          { first_name: employeeFirst },
-                        ]);
-                        console.log(
-                          updatedEmployee + " is now a " + employeeNewRole + "!"
-                        );
-                      } else if (employeeNewRole === "Manager") {
-                        connection.query("UPDATE role SET ? WHERE ?", [
-                          {
-                            title: employeeNewRole,
-                          },
-                          { id: 2 },
-                        ]);
-                        connection.query("UPDATE employee SET ? WHERE ?", [
-                          {
-                            role_id: 2,
-                          },
-                          { first_name: employeeFirst },
-                        ]);
-                        console.log(
-                          updatedEmployee + " is now a " + employeeNewRole + "!"
-                        );
-                      } else if (employeeNewRole === "Talent") {
-                        connection.query("UPDATE role SET ? WHERE ?", [
-                          {
-                            title: employeeNewRole,
-                          },
-                          { id: 3 },
-                        ]);
-                        connection.query("UPDATE employee SET ? WHERE ?", [
-                          {
-                            role_id: 3,
-                          },
-                          { first_name: employeeFirst },
-                        ]);
-                        console.log(
-                          updatedEmployee + " is now a " + employeeNewRole + "!"
-                        );
-                      } else if (employeeNewRole === "Janitor") {
-                        connection.query("UPDATE role SET ? WHERE ?", [
-                          {
-                            title: employeeNewRole,
-                          },
-                          { id: 4 },
-                        ]);
-                        connection.query("UPDATE employee SET ? WHERE ?", [
-                          {
-                            role_id: 4,
-                          },
-                          { first_name: employeeFirst },
-                        ]);
-                        console.log(
-                          updatedEmployee + " is now a " + employeeNewRole + "!"
-                        );
-                        //   for (i = 0; i < res.length; i++) {
-                        //     console.log(res[i].title);
-
-                        //     // if (
-                        //     //   res[i].first_name + " " + res[i].last_name ===
-                        //     //   updatedEmployee
-                        //     // ) {
-                        //     //   console.log(res[i].title);
-                        //     // } else {
-                        //     //   console.log("This was a fail!");
-                        //     // }
-                        //   }
-                        //   const split = updatedEmployee.split(" ");
-                        //   const employeeFirst = split[0];
-                        //   connection.query(
-                        //     "UPDATE employee INNER JOIN role ON employee.role_id = role.id SET ? WHERE ?",
-                        //     [
-                        //       { title: employeeNewRole },
-                        //       { first_name: employeeFirst },
-                        //     ]
-                        //   );
-                      }
-                      nextOption();
-                      //   console.log(titlesArray);
-                    });
+              connection.query("SELECT * FROM role", function (err, res) {
+                if (err) throw err;
+                for (i = 0; i < res.length; i++) {
+                  titlesArray.push(res[i].title);
                 }
-              );
+                //   getUnique(titlesArray);
+                //   console.log(res);
+                inquirer
+                  .prompt([
+                    {
+                      type: "list",
+                      message: `Which role would you like to reassign ${updatedEmployee} to?`,
+                      choices: titlesArray,
+                      name: "newRole",
+                    },
+                  ])
+                  .then(function (response) {
+                    const employeeNewRole = response.newRole;
+                    const split = updatedEmployee.split(" ");
+                    const employeeFirst = split[0];
+
+                    console.log(employeeObj);
+                    let newRoleId;
+                    for (i = 0; i < titlesArray.length; i++) {
+                      if (titlesArray[i] === employeeNewRole) {
+                        titlesArray[i].id = newRoleId;
+                      }
+                    }
+
+                    // if (employeeNewRole === "Cashier") {
+                    connection.query("UPDATE employee SET ? WHERE ?", [
+                      {
+                        role_id: newRoleId,
+                      },
+                      { id: chosenEmployeeId },
+                    ]);
+                    //   connection.query("UPDATE employee SET ? WHERE ?", [
+                    //     {
+                    //       role_id: 1,
+                    //     },
+                    //     { first_name: employeeFirst },
+                    //   ]);
+                    //   console.log(
+                    //     updatedEmployee + " is now a " + employeeNewRole + "!"
+                    //   );
+                    // } else if (employeeNewRole === "Manager") {
+                    //   connection.query("UPDATE role SET ? WHERE ?", [
+                    //     {
+                    //       title: employeeNewRole,
+                    //     },
+                    //     { id: 2 },
+                    //   ]);
+                    //   connection.query("UPDATE employee SET ? WHERE ?", [
+                    //     {
+                    //       role_id: 2,
+                    //     },
+                    //     { first_name: employeeFirst },
+                    //   ]);
+                    //   console.log(
+                    //     updatedEmployee + " is now a " + employeeNewRole + "!"
+                    //   );
+                    // } else if (employeeNewRole === "Talent") {
+                    //   connection.query("UPDATE role SET ? WHERE ?", [
+                    //     {
+                    //       title: employeeNewRole,
+                    //     },
+                    //     { id: 3 },
+                    //   ]);
+                    //   connection.query("UPDATE employee SET ? WHERE ?", [
+                    //     {
+                    //       role_id: 3,
+                    //     },
+                    //     { first_name: employeeFirst },
+                    //   ]);
+                    //   console.log(
+                    //     updatedEmployee + " is now a " + employeeNewRole + "!"
+                    //   );
+                    // } else if (employeeNewRole === "Janitor") {
+                    //   connection.query("UPDATE role SET ? WHERE ?", [
+                    //     {
+                    //       title: employeeNewRole,
+                    //     },
+                    //     { id: 4 },
+                    //   ]);
+                    //   connection.query("UPDATE employee SET ? WHERE ?", [
+                    //     {
+                    //       role_id: 4,
+                    //     },
+                    //     { first_name: employeeFirst },
+                    //   ]);
+                    //   console.log(
+                    //     updatedEmployee + " is now a " + employeeNewRole + "!"
+                    //   );
+                    //   for (i = 0; i < res.length; i++) {
+                    //     console.log(res[i].title);
+
+                    //     // if (
+                    //     //   res[i].first_name + " " + res[i].last_name ===
+                    //     //   updatedEmployee
+                    //     // ) {
+                    //     //   console.log(res[i].title);
+                    //     // } else {
+                    //     //   console.log("This was a fail!");
+                    //     // }
+                    //   }
+                    //   const split = updatedEmployee.split(" ");
+                    //   const employeeFirst = split[0];
+                    //   connection.query(
+                    //     "UPDATE employee INNER JOIN role ON employee.role_id = role.id SET ? WHERE ?",
+                    //     [
+                    //       { title: employeeNewRole },
+                    //       { first_name: employeeFirst },
+                    //     ]
+                    //   );
+                    // }
+                    nextOption();
+                    //   console.log(titlesArray);
+                  });
+              });
             } else if (reply.roleUpdate === "Create new role") {
               console.log(
                 `Let's create a new role for ${updatedEmployee}!! \n`
