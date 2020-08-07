@@ -46,7 +46,6 @@ function userPrompt(response) {
           "Remove Role",
           "View All Roles",
           "Update Employee Roles",
-          "Update Employee Managers",
           "Exit Menu",
         ],
         name: "choice",
