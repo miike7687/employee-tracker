@@ -37,7 +37,6 @@ function userPrompt(response) {
         choices: [
           "View All Employees",
           "View All Employees by Department",
-          "View All Employees by Manager",
           "View All Employees by Role",
           "Add Employee",
           "Remove Employee",
@@ -48,6 +47,7 @@ function userPrompt(response) {
           "View All Roles",
           "Update Employee Roles",
           "Update Employee Managers",
+          "Exit Menu",
         ],
         name: "choice",
       },
@@ -90,34 +90,8 @@ function userPrompt(response) {
             // newTeamMember();
           });
       } else if (reply.choice === "Add Role") {
-        inquirer
-          .prompt([
-            {
-              type: "input",
-              message: "What is the title of the role?",
-              name: "title",
-            },
-            {
-              type: "input",
-              message: "What is this role's salary?",
-              name: "salary",
-            },
-            {
-              type: "input",
-              message: "What's the department ID of this role?",
-              name: "departmentId",
-            },
-          ])
-          .then(function (addRoleReply) {
-            var newRole = new Role(
-              addRoleReply.title,
-              addRoleReply.salary,
-              addRoleReply.departmentId
-            );
-            console.log(newRole);
-            // employeeId = employeeId++;
-            addRole(newRole);
-          });
+        // employeeId = employeeId++;
+        addRole();
       } else if (reply.choice === "Add Department") {
         inquirer
           .prompt([
@@ -148,10 +122,31 @@ function userPrompt(response) {
         viewByRole();
       } else if (reply.choice === "Update Employee Roles") {
         updateRole();
+      } else if (reply.choice === "Exit Menu") {
+        connection.end();
       }
     })
     .catch(function (err) {
       console.log(err);
+    });
+}
+
+function nextOption() {
+  inquirer
+    .prompt([
+      {
+        type: "list",
+        message: "What would you like to do next?",
+        choices: ["Return to main menu", "View employees"],
+        name: "option",
+      },
+    ])
+    .then(function (response) {
+      if (response.option === "Return to main menu") {
+        userPrompt();
+      } else if (response.option === "View employees") {
+        viewEmployees();
+      }
     });
 }
 function addEmployee(employee) {
@@ -168,27 +163,56 @@ function addEmployee(employee) {
       if (err) throw err;
       console.log(res.affectedRows + " employee added \n");
       //   viewEmployees();
-      userPrompt();
+      nextOption();
     }
   );
 }
 
 function addRole(role) {
-  console.log("Adding a new role...\n");
-  var query = connection.query(
-    "INSERT INTO role SET ?",
-    {
-      title: role.title,
-      salary: role.salary,
-      department_id: role.departmentId,
-    },
-    function (err, res) {
-      if (err) throw err;
-      console.log(res.affectedRows + " role added \n");
-      //   viewRoles();
-      userPrompt();
-    }
-  );
+  inquirer
+    .prompt([
+      {
+        type: "input",
+        message: "What is the title of the role?",
+        name: "title",
+      },
+      {
+        type: "input",
+        message: "What is this role's salary?",
+        name: "salary",
+      },
+      {
+        type: "input",
+        message: "What's the department ID of this role?",
+        name: "departmentId",
+      },
+    ])
+    .then(function (addRoleReply) {
+      var newRole = new Role(
+        addRoleReply.title,
+        addRoleReply.salary,
+        addRoleReply.departmentId
+      );
+      console.log(newRole);
+      if (addRoleReply.addEmployee === "yes") {
+        alternateAddEmployee();
+      }
+      console.log("Adding a new role...\n");
+      var query = connection.query(
+        "INSERT INTO role SET ?",
+        {
+          title: newRole.title,
+          salary: newRole.salary,
+          department_id: newRole.departmentId,
+        },
+        function (err, res) {
+          if (err) throw err;
+          console.log(res.affectedRows + " role added \n");
+          //   viewRoles();
+          nextOption();
+        }
+      );
+    });
 }
 
 function addDepartment(department) {
@@ -202,18 +226,20 @@ function addDepartment(department) {
       if (err) throw err;
       console.log(res.affectedRows + " department added \n");
       //   viewRoles();
-      userPrompt();
+      nextOption();
     }
   );
 }
 
 function viewEmployees() {
-  console.log("Employees");
   connection.query("SELECT * FROM employee", function (err, res) {
     if (err) throw err;
+    console.log("");
     console.table(res);
+    console.log("");
   });
-  userPrompt();
+  console.log("");
+  nextOption();
 }
 
 function viewRoles() {
@@ -222,7 +248,7 @@ function viewRoles() {
     if (err) throw err;
     console.table(res);
   });
-  userPrompt();
+  nextOption();
 }
 
 function viewByDepartment() {
@@ -260,10 +286,21 @@ function viewByDepartment() {
             console.log(departmentName);
           }
         );
-        // userPrompt();
+        nextOption();
       });
   });
 }
+
+// function viewByManager() {
+//   // let managerArray = [];
+//   connection.query("SELECT * FROM employee", function (err, res) {
+//     if (err) throw err;
+//     // for (var i = 0; i < res.length; i++) {
+//     //   roleArray.push(res[i].title);
+//     // }
+//     console.table(res);
+//   });
+// }
 
 function viewByRole() {
   let roleArray = [];
@@ -286,7 +323,7 @@ function viewByRole() {
         const roleChoice = answer.role;
         console.log(roleChoice);
         connection.query(
-          `SELECT title, first_name, last_name FROM employee, department, role WHERE department.id = department_id AND role.id = role_id`,
+          `SELECT DISTINCT role.title, employee.first_name, employee.last_name, employee.role_id FROM employee JOIN role ON employee.role_id = role.id`,
           //   [departmentChoice],
           function (err, res) {
             if (err) throw err;
@@ -300,7 +337,7 @@ function viewByRole() {
             console.log(roleName);
           }
         );
-        // userPrompt();
+        nextOption();
       });
   });
 }
@@ -311,7 +348,7 @@ function updateRole() {
     for (var i = 0; i < res.length; i++) {
       employeeArray.push(res[i].first_name + " " + res[i].last_name);
     }
-    console.log(employeeArray);
+    console.log(res);
     inquirer
       .prompt([
         {
@@ -341,13 +378,14 @@ function updateRole() {
               );
               let titlesArray = [];
               connection.query(
-                `SELECT employee.first_name, employee.last_name, employee.role_id, role.title FROM employee, department, role WHERE department.id = department_id AND role.id = role_id`,
+                "SELECT DISTINCT employee.first_name, employee.last_name, employee.role_id, role.title FROM employee JOIN  role ON employee.role_id = role.id",
                 function (err, res) {
                   if (err) throw err;
                   for (i = 0; i < res.length; i++) {
                     titlesArray.push(res[i].title);
                   }
-                  console.log(titlesArray);
+                  //   getUnique(titlesArray);
+                  //   console.log(res);
                   inquirer
                     .prompt([
                       {
@@ -448,13 +486,16 @@ function updateRole() {
                         //     ]
                         //   );
                       }
-                      userPrompt();
+                      nextOption();
                       //   console.log(titlesArray);
                     });
                 }
               );
             } else if (reply.roleUpdate === "Create new role") {
-              console.log(`Let's create a new role for ${updatedEmployee}!!`);
+              console.log(
+                `Let's create a new role for ${updatedEmployee}!! \n`
+              );
+              addRole(updatedEmployee);
             }
           });
       });
@@ -489,7 +530,7 @@ function deleteEmployee(employee) {
             console.log(res.affectedRows + " employee deleted!\n");
           }
         );
-        userPrompt();
+        nextOption();
       });
   });
 }
@@ -522,7 +563,7 @@ function deleteRole(role) {
             console.log(res.affectedRows + " role deleted!\n");
           }
         );
-        userPrompt();
+        nextOption();
       });
   });
 }
@@ -533,7 +574,7 @@ function deleteDepartment(department) {
     for (var i = 0; i < res.length; i++) {
       departmentArr.push(res[i].department_name);
     }
-    console.log(departmentArr);
+    console.log(departmentArr + "\n");
     inquirer
       .prompt([
         {
@@ -555,7 +596,7 @@ function deleteDepartment(department) {
             console.log(res.affectedRows + " department deleted!\n");
           }
         );
-        userPrompt();
+        nextOption();
       });
   });
 }
